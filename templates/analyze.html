@@ -1,0 +1,151 @@
+{% extends 'layout.html' %}
+
+{% block title %}Run Analysis - SAW Method Decision Support System{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+    <div class="card-header">
+        <h1>Run SAW Method Analysis</h1>
+    </div>
+    
+    <div class="mb-4">
+        <p>Set up and run an analysis to evaluate factory location alternatives using the Simple Additive Weighting (SAW) method.</p>
+    </div>
+    
+    {% if criteria_list and alternatives %}
+    <form method="POST" action="{{ url_for('analyze') }}" id="analysis-form">
+        {{ form.csrf_token }}
+        
+        <div class="form-group">
+            <label class="form-label" for="{{ form.name.id }}">Analysis Name</label>
+            {{ form.name(class="form-control", placeholder="e.g., Factory Location Analysis - May 2025") }}
+            {% if form.name.errors %}
+                {% for error in form.name.errors %}
+                    <div class="error-message" style="color: var(--color-error);">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="{{ form.description.id }}">Description</label>
+            {{ form.description(class="form-control", placeholder="Brief description of this analysis...") }}
+            {% if form.description.errors %}
+                {% for error in form.description.errors %}
+                    <div class="error-message" style="color: var(--color-error);">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <h3 class="mt-4 mb-3">Review and Adjust Criteria Weights</h3>
+        <div class="alert alert-info">
+            <p>You can adjust the weights for each criterion to reflect your priorities for this specific analysis. The weights will be normalized to sum to 1.</p>
+            <p><strong>Current total weight: <span id="total-weight">0.00</span></strong> (Ideally close to 1.0)</p>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Criterion</th>
+                        <th>Type</th>
+                        <th>Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for criteria in criteria_list %}
+                    <tr>
+                        <td>
+                            <label for="weight_{{ criteria.id }}">{{ criteria.name }}</label>
+                            {% if criteria.description %}
+                            <div class="text-muted" style="font-size: 0.875rem;">{{ criteria.description|truncate(30) }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if criteria.is_benefit %}badge-success{% else %}badge-accent{% endif %}">
+                                {% if criteria.is_benefit %}Benefit{% else %}Cost{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <input type="number" name="weight_{{ criteria.id }}" id="weight_{{ criteria.id }}" 
+                                class="form-control" step="0.01" min="0.01" max="1" value="{{ criteria.weight }}" readonly
+                                style="background-color: #f8fafc; cursor: not-allowed;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <h3 class="mt-4 mb-3">Review Alternatives</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Alternative</th>
+                        <th>Location</th>
+                        {% for criteria in criteria_list %}
+                        <th>{{ criteria.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alternative in alternatives %}
+                    <tr>
+                        <td>{{ alternative.name }}</td>
+                    <td>{{ alternative.location }}</td>
+                    {% for criteria in criteria_list %}
+                        {% set value = get_criteria_value(alternative.id, criteria.id) %}
+                        <td>{{ value |int  }}</td>
+                    {% endfor %}
+                    <td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="form-group mt-4">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    {% elif not criteria_list %}
+    <div class="alert alert-warning">
+        <p>You need to <a href="{{ url_for('manage_criteria') }}">add criteria</a> before you can run an analysis.</p>
+    </div>
+    {% elif not alternatives %}
+    <div class="alert alert-warning">
+        <p>You need to <a href="{{ url_for('manage_alternatives') }}">add alternatives</a> before you can run an analysis.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card mt-4 fade-in">
+    <h2>About the SAW Method</h2>
+    
+    <p>The Simple Additive Weighting (SAW) method follows these steps:</p>
+    
+    <ol>
+        <li class="mb-2">
+            <strong>Decision Matrix</strong>: The system creates a matrix of alternatives (rows) and criteria (columns) with raw values.
+        </li>
+        <li class="mb-2">
+            <strong>Normalization</strong>: Values are normalized to a common scale (0-1) using these formulas:
+            <ul>
+                <li>For benefit criteria (higher is better): r<sub>ij</sub> = x<sub>ij</sub> / max(x<sub>j</sub>)</li>
+                <li>For cost criteria (lower is better): r<sub>ij</sub> = min(x<sub>j</sub>) / x<sub>ij</sub></li>
+            </ul>
+        </li>
+        <li class="mb-2">
+            <strong>Weighted Normalization</strong>: Normalized values are multiplied by their respective criteria weights.
+        </li>
+        <li class="mb-2">
+            <strong>Final Score Calculation</strong>: Weighted normalized values are summed for each alternative.
+        </li>
+        <li>
+            <strong>Ranking</strong>: Alternatives are ranked by their final scores in descending order.
+        </li>
+    </ol>
+    
+    <p>The alternative with the highest score represents the most suitable factory location based on your criteria and priorities.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'layout.html' %}
+
+{% block title %}Analysis Results - SAW Method Decision Support System{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+    <div class="card-header">
+        <h1>Analysis History</h1>
+        {% if current_user.role in ['admin', 'strategic_officer_manager'] %}
+<a href="{{ url_for('analyze') }}" class="btn btn-secondary">New Analysis</a>
+{% endif %}
+    </div>
+    
+    <div class="mb-4">
+        <p>Review past analyses and their results. Click on an analysis to view detailed results and recommendations.</p>
+    </div>
+    
+    {% if analyses %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in analyses %}
+                <tr class="fade-in" style="animation-delay: {{ loop.index * 0.1 }};">
+                    <td>{{ analysis.name }}</td>
+                    <td>{{ analysis.description|truncate(50) if analysis.description else 'No description' }}</td>
+                    <td>{{ format_date(analysis.created_at) }}</td>
+                    <td>
+                        <a href="{{ url_for('view_analysis', id=analysis.id) }}" class="btn btn-sm btn-secondary">View</a>
+                        <a href="{{ url_for('export_analysis', id=analysis.id) }}" class="btn btn-sm btn-link">Export</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center p-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 16px; color: var(--color-primary-light);">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <h3>No Analyses Yet</h3>
+        <p class="mb-3">You haven't run any analyses yet. Start by adding criteria and alternatives, then run your first analysis.</p>
+        <div class="flex gap-2 justify-between" style="max-width: 400px; margin: 0 auto;">
+            <a href="{{ url_for('manage_criteria') }}" class="btn btn-secondary">Add Criteria</a>
+            <a href="{{ url_for('manage_alternatives') }}" class="btn btn-secondary">Add Alternatives</a>
+            {% if current_user.role in ['admin', 'strategic_officer_manager'] %}
+<a href="{{ url_for('analyze') }}" class="btn btn-primary">Run Analysis</a>
+{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card mt-4 fade-in">
+    <h2>Tips for Effective Decision Making</h2>
+    
+    <div class="mb-3">
+        <h3>For Better Results:</h3>
+        <ul>
+            <li>Include all relevant criteria that impact your factory location decision</li>
+            <li>Assign weights carefully to reflect your company's strategic priorities</li>
+            <li>Consider running multiple analyses with different weight configurations</li>
+            <li>Include a diverse set of alternatives to ensure comprehensive evaluation</li>
+            <li>Review the numerical data alongside the visual representations</li>
+        </ul>
+    </div>
+    
+    <div>
+        <h3>When Interpreting Results:</h3>
+        <ul>
+            <li>Look for significant score differences between alternatives</li>
+            <li>Consider practical constraints that might not be captured in the model</li>
+            <li>Use the sensitivity analysis to understand how changes in weights affect the outcome</li>
+            <li>Remember that the SAW method provides decision support, not a definitive answer</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

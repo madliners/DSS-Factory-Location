@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h4 class="mb-0">Edit Criteria: {{ criteria.name }}</h4>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          <label for="{{ form.name.id }}" class="form-label">Name</label>
+          {{ form.name(class="form-control") }}
+          {% for error in form.name.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.description.id }}" class="form-label">Description</label>
+          {{ form.description(class="form-control", rows="3") }}
+          {% for error in form.description.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.weight.id }}" class="form-label">Weight (0.0 - 10)</label>
+          {{ form.weight(class="form-control", min="0", max="10", step="0.01") }}
+          <div class="form-text">Higher values indicate greater importance.</div>
+          {% for error in form.weight.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-check mb-3">
+          {{ form.is_benefit(class="form-check-input") }}
+          <label class="form-check-label" for="{{ form.is_benefit.id }}">
+            Is Benefit Criteria
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Criteria</button>
+        <a href="{{ url_for('manage_criteria') }}" class="btn btn-secondary">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

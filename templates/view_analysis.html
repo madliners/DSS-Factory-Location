@@ -1,0 +1,273 @@
+{% extends 'layout.html' %}
+
+{% block title %}Analysis Results - {{ analysis.name }} - SAW Method Decision Support System{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+    <div class="card-header">
+        <h1>Analysis Results: {{ analysis.name }}</h1>
+        <div>
+            <a href="{{ url_for('export_analysis', id=analysis.id) }}" class="btn btn-secondary">Export PDF</a>
+            <a href="{{ url_for('analysis_list') }}" class="btn btn-link">Back to List</a>
+        </div>
+    </div>
+    
+    <div class="mb-4">
+        <p><strong>Date:</strong> {{ format_date(analysis.created_at) }}</p>
+        {% if analysis.description %}
+            <p><strong>Description:</strong> {{ analysis.description }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="mb-4">
+        <div class="view-tabs">
+            <button class="btn view-tab active" data-view="summary-view" onclick="toggleAnalysisView('summary-view')">Summary</button>
+            <button class="btn view-tab" data-view="details-view" onclick="toggleAnalysisView('details-view')">Calculation Details</button>
+            <button class="btn view-tab" data-view="chart-view" onclick="toggleAnalysisView('chart-view')">Chart</button>
+        </div>
+    </div>
+    
+    <div id="summary-view" class="analysis-view">
+        <h2>Ranking Results</h2>
+        
+        {% if details and details.ranked_alternatives %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Alternative</th>
+                            <th>Location</th>
+                            <th>Final Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alt in details.ranked_alternatives %}
+                        <tr class="{% if alt.rank == 1 %}bg-success-light{% elif alt.rank == 2 %}bg-info-light{% elif alt.rank == 3 %}bg-warning-light{% endif %}">
+                            <td><strong>{{ alt.rank }}</strong></td>
+                            <td>{{ alt.name }}</td>
+                            <td>{{ alt.location }}</td>
+                            <td>{{ alt.score|round(4) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card mt-4">
+                <h3>Recommendation</h3>
+                <p>Based on the SAW method analysis and the criteria weights provided:</p>
+                
+                {% if details.ranked_alternatives|length > 0 %}
+                    {% set top_alt = details.ranked_alternatives[0] %}
+                    <div class="alert alert-success">
+                        <p>
+                            <strong>{{ top_alt.name }}</strong> (located at <strong>{{ top_alt.location }}</strong>) 
+                            is the recommended factory location with a score of <strong>{{ top_alt.score|round(4) }}</strong>.
+                        </p>
+                    </div>
+                    
+                    {% if details.ranked_alternatives|length > 1 %}
+                        {% set second_alt = details.ranked_alternatives[1] %}
+                        <p>
+                            The second-best option is <strong>{{ second_alt.name }}</strong> with a score of 
+                            <strong>{{ second_alt.score|round(4) }}</strong> 
+                            ({{ ((top_alt.score - second_alt.score) / top_alt.score * 100)|round(1) }}% lower than the top choice).
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-warning">
+                        <p>No recommendation could be made due to insufficient data.</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <p>No detailed results available for this analysis.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div id="details-view" class="analysis-view" style="display: none;">
+        <h2>Calculation Details</h2>
+        
+        {% if details %}
+            <div class="mb-4">
+                <h3>Decision Matrix (Raw Values)</h3>
+                <p>The original values for each alternative and criterion:</p>
+                
+                {% if details.decision_matrix %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Alternative</th>
+                                {% for alt in details.ranked_alternatives %}
+                                <th>{{ alt.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(details.decision_matrix[0]|length) %}
+                            <tr>
+                                <td><strong>Criterion {{ i+1 }}</strong></td>
+                                {% for j in range(details.decision_matrix|length) %}
+                                <td>{{ details.decision_matrix[j][i]|round(2) }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-4">
+                <h3>Normalized Matrix</h3>
+                <p>Values normalized to a scale of 0-1:</p>
+                
+                {% if details.normalized_matrix %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Alternative</th>
+                                {% for alt in details.ranked_alternatives %}
+                                <th>{{ alt.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(details.normalized_matrix[0]|length) %}
+                            <tr>
+                                <td><strong>Criterion {{ i+1 }}</strong></td>
+                                {% for j in range(details.normalized_matrix|length) %}
+                                <td>{{ details.normalized_matrix[j][i]|round(3) }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-4">
+                <h3>Weighted Normalized Matrix</h3>
+                <p>Normalized values multiplied by respective criterion weights:</p>
+                
+                {% if details.weighted_matrix %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Alternative</th>
+                                {% for alt in details.ranked_alternatives %}
+                                <th>{{ alt.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(details.weighted_matrix[0]|length) %}
+                            <tr>
+                                <td><strong>Criterion {{ i+1 }}</strong></td>
+                                {% for j in range(details.weighted_matrix|length) %}
+                                <td>{{ details.weighted_matrix[j][i]|round(3) }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-4">
+                <h3>Final Scores</h3>
+                <p>Sum of weighted normalized values for each alternative:</p>
+                
+                {% if details.final_scores %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                {% for alt in details.ranked_alternatives %}
+                                <th>{{ alt.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% for score in details.final_scores %}
+                                <td><strong>{{ score|round(4) }}</strong></td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <p>No detailed calculation data available for this analysis.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div id="chart-view" class="analysis-view" style="display: none;">
+        <h2>Visual Representation</h2>
+        
+        {% if chart_data %}
+            <div class="text-center mb-4">
+                <img src="data:image/png;base64,{{ chart_data }}" alt="Analysis Results Chart" class="img-fluid" style="max-width: 100%;">
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <p>No chart data available for this analysis.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4 fade-in">
+    <h2>Next Steps</h2>
+    <div class="dashboard-grid">
+        {% if current_user.role in ['admin', 'strategic_officer_manager'] %}
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3>Sensitivity Analysis</h3>
+            </div>
+            <p>Try running the analysis again with different criteria weights to see how sensitive the results are to changes in priorities.</p>
+            <a href="{{ url_for('analyze') }}" class="btn btn-secondary mt-2">New Analysis</a>
+        </div>
+        {% endif %}
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3>Export Report</h3>
+            </div>
+            <p>Export a detailed PDF report of this analysis to share with stakeholders and document your decision-making process.</p>
+            <a href="{{ url_for('export_analysis', id=analysis.id) }}" class="btn btn-secondary mt-2">Export PDF</a>
+        </div>
+
+        {% if current_user.role in ['admin', 'chief_strategic_officer', 'strategic_officer_manager'] %}
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3>Refine Criteria</h3>
+            </div>
+            <p>Revisit your criteria list and consider adding more factors that might influence your factory location decision.</p>
+            <a href="{{ url_for('manage_criteria') }}" class="btn btn-secondary mt-2">Manage Criteria</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // View toggling functionality is handled by the toggleAnalysisView function in main.js
+</script>
+{% endblock %}

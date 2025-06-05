@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+
+{% block title %}Dashboard - SAW Method Decision Support System{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+    <h1>Factory Location Decision Support System</h1>
+    <p class="mb-4">Welcome to the Simple Additive Weighting (SAW) Decision Support System for factory location selection. This system helps you make informed decisions by evaluating multiple location alternatives against weighted criteria.</p>    
+    <div class="dashboard-grid">
+        {% if current_user.role in ['admin', 'chief_strategic_officer', 'strategic_officer_manager'] %}
+        <div class="dashboard-card slide-in" style="animation-delay: 0.1s;">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3 class="card-title">Set Criteria</h3>
+            </div>
+            <p>Define and prioritize the criteria that are important for your factory location decision.</p>
+            <a href="{{ url_for('manage_criteria') }}" class="btn btn-primary mt-2">Manage Criteria</a>
+        </div>
+        {% endif %}
+
+        {% if current_user.role in ['admin', 'chief_strategic_officer', 'strategic_officer_manager', 'strategic_officer_staff'] %}
+        <div class="dashboard-card slide-in" style="animation-delay: 0.2s;">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3 class="card-title">View Alternatives</h3>
+            </div>
+            <p>See all alternative locations and their details.</p>
+            <a href="{{ url_for('manage_alternatives') }}" class="btn btn-primary mt-2">View Alternatives</a>
+        </div>
+        {% endif %}
+
+        {% if current_user.role in ['admin', 'strategic_officer_manager'] %}
+        <div class="dashboard-card slide-in" style="animation-delay: 0.3s;">
+            <div class="dashboard-card-header">
+                <!-- Icon -->
+                <h3 class="card-title">Run Analysis</h3>
+            </div>
+            <p>Apply the SAW method to evaluate alternatives and generate a ranked list of recommendations.</p>
+            <a href="{{ url_for('analyze') }}" class="btn btn-primary mt-2">Start Analysis</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if analyses %}
+<div class="card mt-4 fade-in">
+    <div class="card-header">
+        <h2>Recent Analyses</h2>
+        <a href="{{ url_for('analysis_list') }}" class="btn btn-link">View All</a>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for analysis in analyses %}
+            <tr>
+                <td>{{ analysis.name }}</td>
+                <td>{{ analysis.description|truncate(50) if analysis.description else 'No description' }}</td>
+                <td>{{ format_date(analysis.created_at) }}</td>
+                <td>
+                    <a href="{{ url_for('view_analysis', id=analysis.id) }}" class="btn btn-sm btn-secondary">View</a>
+                    <a href="{{ url_for('export_analysis', id=analysis.id) }}" class="btn btn-sm btn-link">Export</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card mt-4 fade-in">
+    <div class="text-center p-4">
+        <h3>No Analyses Yet</h3>
+        <p class="mb-3">You haven't run any analyses yet. Start by adding criteria and alternatives, then run your first analysis.</p>
+        <div class="flex gap-2 justify-between" style="max-width: 400px; margin: 0 auto;">
+            {% if current_user.role in ['admin', 'chief_strategic_officer', 'strategic_officer_manager'] %}
+            <a href="{{ url_for('manage_criteria') }}" class="btn btn-secondary">Add Criteria</a>
+            {% endif %}
+            {% if current_user.role in ['admin', 'chief_strategic_officer', 'strategic_officer_manager', 'strategic_officer_staff'] %}
+            <a href="{{ url_for('manage_alternatives') }}" class="btn btn-secondary">View Alternatives</a>
+            {% endif %}
+            {% if current_user.role in ['admin', 'strategic_officer_manager'] %}
+            <a href="{{ url_for('analyze') }}" class="btn btn-primary">Run Analysis</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-4 fade-in">
+    <h2>About SAW Method</h2>
+    <p>The Simple Additive Weighting (SAW) method is a multi-criteria decision making technique that helps evaluate multiple alternatives based on a set of criteria with different weights.</p>
+    <h3 class="mt-3">How It Works</h3>
+    <ol>
+        <li class="mb-1"><strong>Define Criteria:</strong> Identify factors important for your decision (e.g., cost, location, infrastructure).</li>
+        <li class="mb-1"><strong>Assign Weights:</strong> Allocate importance weights to each criterion (weights should sum to 1).</li>
+        <li class="mb-1"><strong>Rate Alternatives:</strong> Score each alternative against each criterion.</li>
+        <li class="mb-1"><strong>Normalize Ratings:</strong> The system converts all ratings to a comparable scale.</li>
+        <li class="mb-1"><strong>Calculate Weighted Sum:</strong> Each normalized rating is multiplied by its criterion weight.</li>
+        <li><strong>Rank Alternatives:</strong> The alternative with the highest total score is recommended.</li>
+    </ol>
+</div>
+{% endblock %}
